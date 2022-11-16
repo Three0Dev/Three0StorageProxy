@@ -4,8 +4,6 @@ const web3Storage = require('web3.storage')
 const dotenv = require('dotenv');
 const jwt = require('jsonwebtoken');
 const cookieParser = require('cookie-parser')
-
-
 const fileUpload = require('express-fileupload');
 const cors = require('cors');
 const morgan = require('morgan');
@@ -13,11 +11,7 @@ const morgan = require('morgan');
 const app = express()
 app.use(fileUpload());
   
-let corsOptions = {
-    origin: 'http://localhost:1234',
-    credentials: true 
-};
-app.use(cors(corsOptions));
+app.use(cors());
 
 app.use(express.json());
 app.use(morgan('dev'));
@@ -56,6 +50,7 @@ app.listen(PORT, async () => {
 })
 
 app.post("/generateToken", async (req, res) => {
+    // res.append('Access-Control-Allow-Origin', req.headers.origin);
     const newArgs = { account_to_validate: req.body.accountId, nonce: req.body.nonce };
 
     try{
@@ -76,18 +71,31 @@ app.post("/generateToken", async (req, res) => {
         return res.status(500).send("Internal server error");
     }
 
-    const token = jwt.sign(req.body, process.env.JWT_SECRET_KEY, { expiresIn: '1h' });
+    const token = jwt.sign(req.body, process.env.JWT_SECRET_KEY, { expiresIn: '1d' });
   
-    res.json({'three0storage': token});
+    // res.cookie('three0storage', token, {
+    //     path: '/',
+    //     sameSite: 'none',
+    //     maxAge: 1000 * 60 * 60 * 24
+    // }).send('Cookie is set');
+
+    res.json({
+        token
+    })
 });
 
 const authMiddleware = (req, res, next) => {
-    const token = req.cookies.three0storage;
+    // const token = req.cookies.three0storage;
+    // console.log(req.cookies)
+
+    const authToken = req.headers.authorization;
+    res.header('Access-Control-Allow-Origin', req.headers.origin); //req.headers.origin
+    res.set('Access-Control-Allow-Credentials', 'true');
 
     let jwtSecretKey = process.env.JWT_SECRET_KEY;
   
     try {
-        jwt.verify(token, jwtSecretKey);
+        jwt.verify(authToken, jwtSecretKey);
 
         next();
     } catch (error) {
@@ -97,6 +105,8 @@ const authMiddleware = (req, res, next) => {
 };
 
 app.post('/upload',authMiddleware, async (req, res) => {
+    console.log('uploading file...');
+
     try {
         if(!req.files) {
             res.send({
@@ -104,10 +114,13 @@ app.post('/upload',authMiddleware, async (req, res) => {
                 message: 'No file uploaded'
             });
         } else {
-            const file = req.files.file;
-            const cid = await storage.put([ new web3Storage.File([file.data], file.name, { type: file.mimetype })])
+            const files = !Array.isArray(req.files.file) ? 
+                [new web3Storage.File([req.files.file.data], req.files.file.name, { type: req.files.file.mimetype })]
+                : req.files.file.map(file => new web3Storage.File([file.data], file.name, { type: file.mimetype }));
+
+            const cid = await storage.put(files)
     
-            res.send({
+            res.json({
                 status: true,
                 cid
             });

@@ -4,6 +4,7 @@
   "description": "proxy service for web3.storage",
   "main": "index.js",
   "scripts": {
+    "dev": "nodemon src/index.js",
     "start": "node src/index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -19,5 +20,8 @@
     "morgan": "^1.10.0",
     "near-api-js": "^1.1.0",
     "web3.storage": "^4.4.0"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.20"
   }
 }
