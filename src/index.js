@@ -49,6 +49,10 @@ app.listen(PORT, async () => {
     console.log(`Three0 Storage Proxy listening on port ${PORT}`)
 })
 
+app.get("/", (_req, res) => {
+    res.redirect("https://three0dev.com")
+})
+
 app.post("/generateToken", async (req, res) => {
     // res.append('Access-Control-Allow-Origin', req.headers.origin);
     const newArgs = { account_to_validate: req.body.accountId, nonce: req.body.nonce };
